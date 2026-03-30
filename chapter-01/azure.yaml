@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: azure-ai-foundry-basic-agent
+metadata:
+  template: azure-ai-agents-orchestration/chapter-01
+
+services:
+
+hooks:
+  preprovision:
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/preprovision.ps1
+      interactive: false
+      continueOnError: false
+    posix:
+      shell: sh
+      run: ./infra/scripts/preprovision.sh
+      interactive: false
+      continueOnError: false
+  postprovision:
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/postprovision.ps1
+      interactive: false
+      continueOnError: false
+    posix:
+      shell: sh
+      run: ./infra/scripts/postprovision.sh
+      interactive: false
+      continueOnError: false
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
