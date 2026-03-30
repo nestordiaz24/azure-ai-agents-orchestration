@@ -50,6 +50,7 @@ By the end of this chapter you will have:
 | Azure Developer CLI (`azd`) | ≥ 1.9.0 | [Install guide](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) |
 | Azure CLI (`az`) | ≥ 2.60.0 | [Install guide](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | Azure CLI ML extension | latest | `az extension add --name ml` |
+| Python | ≥ 3.10 | [python.org](https://www.python.org/downloads/) |
 
 You also need:
 
@@ -106,7 +107,7 @@ azd up
 
 1. Run the **pre-provision hook** (`infra/scripts/preprovision.sh`) to validate tool dependencies.
 2. Deploy all Bicep templates to your subscription.
-3. Run the **post-provision hook** (`infra/scripts/postprovision.sh`) to push `agent.yaml` to the newly created AI Project.
+3. Run the **post-provision hook** which installs the Python dependencies and calls `src/deploy_agent.py` to push `agent.yaml` to the newly created AI Project.
 
 Expected output (abridged):
 
@@ -122,7 +123,7 @@ Provisioning Azure resources (azd provision)
   (✓) Done: AI Project: project-<token>
 
 Deploying services (azd deploy)
-  (✓) Done: Agent deployed – foundry-qa-agent
+  (✓) Done: Agent created: asst_abc123
 ```
 
 ---
@@ -133,7 +134,12 @@ Deploying services (azd deploy)
 chapter-01/
 ├── agent.yaml                    # Declarative agent definition
 ├── azure.yaml                    # Azure Developer CLI project config
+├── requirements.txt              # Python dependencies
+├── .env.example                  # Template for local .env file
 ├── README.md                     # This file
+├── src/
+│   ├── deploy_agent.py           # Creates/updates the Foundry agent via Python SDK
+│   └── chat.py                   # Interactive CLI to chat with the agent
 └── infra/
     ├── main.bicep                # Subscription-scoped entry point
     ├── main.parameters.json      # Parameter defaults (azd substitutes env vars)
@@ -146,9 +152,7 @@ chapter-01/
         ├── keyvault.bicep        # Key Vault (required by Hub)
         └── scripts/
             ├── preprovision.sh   # Pre-provision hook (Linux/macOS)
-            ├── postprovision.sh  # Post-provision hook (Linux/macOS)
-            ├── preprovision.ps1  # Pre-provision hook (Windows)
-            └── postprovision.ps1 # Post-provision hook (Windows)
+            └── preprovision.ps1  # Pre-provision hook (Windows)
 ```
 
 ---
@@ -186,14 +190,60 @@ Key fields:
 
 ## Testing the Agent
 
-### Option A – Azure AI Foundry Portal
+### Option A – Python scripts (recommended)
+
+Install the Python dependencies once:
+
+```bash
+cd chapter-01
+pip install -r requirements.txt
+```
+
+Copy `.env.example` to `.env` and fill in the values (or they are already populated after `azd up`):
+
+```bash
+cp .env.example .env
+# Edit .env with your AZURE_AI_PROJECT_ENDPOINT and AZURE_AI_SEARCH_CONNECTION_ID
+```
+
+**Deploy (or re-deploy) the agent:**
+
+```bash
+python src/deploy_agent.py
+# Creating agent 'foundry-qa-agent' …
+# Agent created: asst_abc123def456
+```
+
+**Chat interactively with the agent:**
+
+```bash
+python src/chat.py
+
+# 🤖  Chatting with agent 'foundry-qa-agent' (id=asst_abc123def456)
+#     Type 'quit' or 'exit' to end the session.
+#
+# You: What is Azure AI Foundry?
+# Agent: Azure AI Foundry is a unified platform for building, deploying, and managing
+#        AI applications and agents on Microsoft Azure ...
+#
+# You: exit
+# Session ended.
+```
+
+You can also pass the agent name explicitly:
+
+```bash
+python src/chat.py --agent-name foundry-qa-agent
+```
+
+### Option B – Azure AI Foundry Portal
 
 1. Navigate to the [Azure AI Foundry Portal](https://ai.azure.com).
 2. Select your project (`project-<token>`).
 3. Open **Agents** in the left nav and click **foundry-qa-agent**.
 4. Use the built-in **Playground** to send a test message.
 
-### Option B – REST API
+### Option C – REST API
 
 Retrieve the project endpoint and agent ID, then call the Responses API:
 
@@ -220,39 +270,6 @@ curl -X POST "${PROJECT_ENDPOINT}/agents/v1.0/agents/${AGENT_ID}/runs" \
     }
   }'
 ```
-
-### Option C – Azure AI Python SDK
-
-```python
-from azure.ai.projects import AIProjectClient
-from azure.identity import DefaultAzureCredential
-
-client = AIProjectClient(
-    endpoint="<YOUR_PROJECT_ENDPOINT>",
-    credential=DefaultAzureCredential(),
-)
-
-# Create a thread and send a message
-thread = client.agents.create_thread()
-message = client.agents.create_message(
-    thread_id=thread.id,
-    role="user",
-    content="What is Azure AI Foundry?",
-)
-
-# Run the agent
-run = client.agents.create_and_process_run(
-    thread_id=thread.id,
-    agent_id="<YOUR_AGENT_ID>",
-)
-
-# Print the response
-messages = client.agents.list_messages(thread_id=thread.id)
-for msg in messages:
-    if msg.role == "assistant":
-        print(msg.content[0].text.value)
-```
-
 ---
 
 ## Clean Up

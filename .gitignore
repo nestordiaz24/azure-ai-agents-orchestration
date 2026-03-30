@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+
+# Azure Developer CLI
+.azure/
+
+# Editor
+.vscode/
+.idea/
+*.swp
