@@ -150,6 +150,7 @@ output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_AI_HUB_NAME string = aiHub.outputs.name
 output AZURE_AI_PROJECT_NAME string = aiProject.outputs.name
 output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = 'https://${resolvedAiServicesName}.openai.azure.com/'
 output AZURE_AI_SEARCH_ENDPOINT string = searchService.outputs.endpoint
 output AZURE_AI_SEARCH_INDEX_NAME string = searchIndexName
 output AZURE_LOCATION string = location

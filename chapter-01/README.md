@@ -50,12 +50,13 @@ By the end of this chapter you will have:
 | Azure Developer CLI (`azd`) | ≥ 1.9.0 | [Install guide](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) |
 | Azure CLI (`az`) | ≥ 2.60.0 | [Install guide](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | Azure CLI ML extension | latest | `az extension add --name ml` |
-| Python | ≥ 3.10 | [python.org](https://www.python.org/downloads/) |
 
 You also need:
 
 - An **Azure subscription** with access to Azure OpenAI (`gpt-4o` or equivalent) in your target region.
 - Owner or Contributor + User Access Administrator rights on the subscription/resource group.
+
+Python is only required for the optional local scripts in `src/deploy_agent.py` and `src/chat.py`. The `azd up` flow deploys the declarative agent through the Azure CLI post-provision hook and does not require the Windows `python` app alias.
 
 ### Check quota
 
@@ -107,7 +108,7 @@ azd up
 
 1. Run the **pre-provision hook** (`infra/scripts/preprovision.sh`) to validate tool dependencies.
 2. Deploy all Bicep templates to your subscription.
-3. Run the **post-provision hook** which installs the Python dependencies and calls `src/deploy_agent.py` to push `agent.yaml` to the newly created AI Project.
+3. Run the **post-provision hook** which resolves the project endpoint and search connection details, installs the Python dependencies, and calls `src/deploy_agent.py` to create or update the agent.
 
 Expected output (abridged):
 
@@ -192,7 +193,7 @@ Key fields:
 
 ### Option A – Python scripts (recommended)
 
-Install the Python dependencies once:
+Install Python 3.10+ first, then install the project dependencies:
 
 ```bash
 cd chapter-01
