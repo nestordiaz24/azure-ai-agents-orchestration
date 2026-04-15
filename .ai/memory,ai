@@ -1,0 +1,28 @@
+# AI Memory Log
+
+_This file records key decisions, assumptions, and context information that the AI agent should remember across tasks. It is updated after each chapter/issue is completed._
+
+## [Chapter 1] Support Agent Completed
+- Implemented a Q&A support agent using Azure AI Foundry with retrieval-augmented generation.
+- Assumptions: Using a local `knowledge_base.json` of Q&A pairs as a stand-in for a real document index. No external calls.
+- Key design: Agent configured via `agent.yaml` with an Azure Cognitive Search index and an OpenAI GPT-4 model deployment.
+
+## [Chapter 2] Product Recommendation Agent Completed
+- Implemented a product recommendation agent using Python (Microsoft Agent Framework).
+- This agent loads a sample product catalog from `data/products.csv` and suggests related products based on a simple rule (shared category tags).
+- Exposed as a FastAPI endpoint (for easy calling by the orchestrator).
+
+## [Chapter 3] Orchestrator Agent Completed
+- Built an orchestrator agent using Agent Framework (Python).
+- The orchestrator identifies if a query is about support, sales, or both:
+  - Support queries are forwarded to the Support Agent via its API.
+  - Recommendation queries are forwarded to the Recommendation Agent via function call.
+  - If both, calls are made in parallel and results merged.
+- Used a simple intent classification based on keywords. In a real system, would use an LLM or semantic router for intent recognition.
+
+## [Chapter 4] Advanced Patterns Completed
+- Added parallel execution: orchestrator now calls both agents concurrently to minimize latency.
+- Implemented a simulation of a human approval step: if a recommendation includes a certain keyword (e.g., high-value order), the orchestrator flags it for review (simulated by a function stub that auto-approves in this demo).
+- Added logging: agent interactions and decisions are now logged to `logs/agent_interactions.log` (for demo, just printing to console and appending to the log file).
+- Demonstrated how APIM would wrap the orchestrator (documented in README, actual APIM integration not implemented in code).
+- All components remain in compliance with security guidelines (no secrets, no real customer data, all sample inputs/outputs).

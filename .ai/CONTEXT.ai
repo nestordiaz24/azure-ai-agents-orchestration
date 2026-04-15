@@ -1,0 +1,72 @@
+# Project Context and Architectural Overview
+
+**Project Name:** Multi-Agent Orchestration Demo (Chapter-based PoC)
+
+**Project Goal:** Develop a modular proof-of-concept that showcases how multiple AI agents can collaborate to solve complex tasks in an enterprise scenario, using the Microsoft Agent Framework (for code-first agents and custom workflows) and Azure AI Foundry (for managed agent hosting). The PoC is structured into sequential **chapters** (phases), each introducing new capabilities:
+- **Chapter 1:** Deploy a basic Q&A **Support Agent** using Azure AI Foundry. This agent answers technical questions by retrieving information from a knowledge base (demonstrated with sample documents).
+- **Chapter 2:** Deploy a second **Product Recommendation Agent** using the Microsoft Agent Framework (Python SDK). This agent suggests complementary products or solutions based on a given scenario (using sample product data).
+- **Chapter 3:** Implement an **Orchestrator Agent** that interprets user requests and routes tasks to the appropriate specialized agents (the support agent from Chapter 1 and the recommendation agent from Chapter 2). The orchestrator then composes a unified response. This demonstrates multi-agent collaboration.
+- **Chapter 4:** Integrate advanced patterns and governance: e.g., run agents in parallel to reduce response time, add an optional human approval step for critical actions, incorporate an additional agent (such as one providing data insights or customer context), and ensure the entire multi-agent system adheres to enterprise security and compliance standards.
+
+**Example Use-Case Scenario (Generic):** A user from an enterprise asks a question that has multiple intents, such as: “We’re facing issue **X** with our product. How can we fix it, and is there an upgrade to improve performance?” The Orchestrator Agent will:
+1. Detect there are two tasks: a troubleshooting query (handled by the Support Agent) and a product recommendation query (handled by the Recommendation Agent).
+2. Prompt the Support Agent to retrieve a solution for issue **X** from the knowledge base.
+3. Prompt the Recommendation Agent to suggest an upgraded product that addresses performance improvements.
+4. Compile the responses into a single coherent answer for the user, e.g., providing the troubleshooting steps followed by the product upgrade suggestion.
+   
+This scenario is for illustration; all data (issue descriptions, knowledge base content, product names) in this project is **fictitious and for demo purposes only**.
+
+## Architecture & Design Constraints
+
+- **Multi-Agent Orchestration:** The system follows a **manager-worker pattern**. The Orchestrator (manager) agent handles incoming requests and delegates to worker agents (specialists) as needed. This pattern ensures modularity and clarity: each specialist agent focuses on a specific domain, and the orchestrator integrates their results. We will use the Agent Framework’s orchestration features (e.g., `Sequential`, `Concurrent`, or `Magentic` patterns) to implement this manager-worker collaboration.
+
+- **Agent Implementations:** To showcase platform trade-offs:
+  - The **Support Q&A Agent** (Chapter 1) is implemented as a **declarative agent** in Azure AI Foundry, configured via `agent.yaml` with a prompt that uses retrieval augmentation. This demonstrates rapid deployment of a managed agent.
+  - The **Product Recommendation Agent** (Chapter 2) is implemented as a **code-first agent** using the Microsoft Agent Framework (Python). This demonstrates fine-grained control using custom code and complex logic (e.g., calling a database or performing calculations).
+  - The **Orchestrator Agent** (Chapter 3) can be implemented using the Agent Framework (for maximum flexibility in orchestrating multiple calls and combining results). It will likely utilize an LLM to analyze user input and decide which specialist agent(s) to invoke.
+  - In later chapters, we might also incorporate other integration points (e.g., **Model Context Protocol (MCP)** for safely connecting to enterprise data sources, or parallel calls to multiple agents for efficiency). These should be simulated as needed given that we are not using real environment access in this PoC.
+
+- **Governance and Security:** The system should follow enterprise AI governance best practices:
+  - **No real credentials or endpoints** in code or configs. Use environment variables for any keys or endpoints and provide dummy placeholders (for example, `AZURE_OPENAI_KEY="YOUR_KEY_HERE"`). The PoC may include sample `.env.example` files or configuration stubs with fake values.
+  - **Data privacy:** All data used is sample data. Do not embed any proprietary or personal user data. For instance, if creating a sample knowledge base, include **public or dummy content** (like excerpts from Wikipedia or generic documents) and not any real company’s internal documents.
+  - **Transparency:** The orchestrator and agents should be designed to allow logging and monitoring. For example, in an actual deployment, each tool invocation or agent decision could be logged for audit. In this PoC, ensure the code has clear logging statements or comments indicating where such logging would occur.
+  - **Compliance by design:** The project should be structured to easily integrate with an **AI gateway** or management layer (in a real scenario) to enforce policies. For now, this means designing agents so that all external actions (like data access) go through well-defined interface classes or functions that could be swapped with secured connectors.
+
+- **Coding Conventions:** Use **Python 3.10+** for code-first agents. Follow PEP 8 style guidelines. Include **type hints** for functions and method signatures. Document public functions and classes with docstrings briefly describing their purpose. For configuration and deployment files (YAML, JSON, Bicep, etc.), follow standard syntax and include comments where non-obvious choices are made.
+
+- **Agent Memory Patterns:** Implement memory where appropriate. For instance, an agent can maintain short-term conversational context if needed, but since this is a single-shot Q&A style system, long-term conversation memory is not a primary focus. However, internal memory or state may be used by the orchestrator to store intermediate results or to avoid repeating tasks (e.g., caching a result from the support agent to reuse in composing the final answer). The Agent Framework’s memory constructs can be utilized to pass shared context between the orchestrator and worker agents if needed.
+
+## Execution and Evolution Guidelines
+
+- **Incremental Development:** Tackle the project in the defined sequence of chapters. At each stage, produce a working increment:
+  - *Chapter 1 output:* A functional Q&A support agent accessible (for example) via a command-line or simple interface, leveraging a local or cloud-based search index of documents.
+  - *Chapter 2 output:* A second agent service that, given a query (like a product or need), returns a product recommendation. Possibly exposed as a function or API for the orchestrator to call.
+  - *Chapter 3 output:* An orchestrator that can be interacted with (e.g., via a chat interface or API endpoint). The orchestrator uses the two agents behind the scenes to fulfill user requests.
+  - *Chapter 4 output:* Enhanced orchestrator with additional features (parallel execution, new agent integration, etc.) and demonstration of governance capabilities (e.g., an example of a policy check or admin log message for a sensitive request).
+
+- **Specification-Driven Implementation:** Each chapter has a corresponding spec file under `.ai/` detailing the tasks, constraints, and acceptance criteria. Treat these as the source of truth for requirements. Adhere to the spec carefully:
+  - The spec’s **Goals** tell you what to accomplish.
+  - The **Constraints** must be respected in your design and code (for example, if a constraint says “use technology X” or “do not call external API Y”, follow it).
+  - The **Expected Outputs/Acceptance Criteria** tell you how success will be measured; ensure your deliverables meet these.
+  - If any ambiguity exists in the spec, make a best-faith assumption and document it in the memory log. Maintain momentum rather than stalling, since this is a controlled PoC environment.
+
+- **Evolving the Specs and Memory:** As you progress:
+  - Update `.ai/memory.md` (or a designated memory file) with key points such as design decisions, identified limitations, or changes in plan. This helps preserve continuity. For example, after completing Chapter 1, summarize how the Support Agent was implemented, noting any assumptions (like “used dummy data for knowledge base”).
+  - If new tasks or improvements are identified (e.g., “implement logging mechanism” or “refactor agent X for scalability”), create new GitHub issues or spec files to track them, with appropriate priorities.
+  - Keep the `AGENTS.md` or context docs updated if the project’s direction or architecture shifts. These instruction files should always reflect the *current* intended state of the system to guide the AI agent accurately.
+
+- **Testing & Verification:** Although this is a prototype, include basic tests or verification steps:
+  - For example, after Chapter 1, you might include a few **sample queries and expected answers** in the documentation or as simple tests. The AI agent can run or simulate these to verify the Q&A agent works (maybe via a script that calls the agent function).
+  - Ensure each agent or function’s core logic is tested at least informally. You can create a `tests/` directory with simple test scripts if time permits, especially for pure functions.
+  - Use these tests to confirm that adding new capabilities (like the orchestrator) doesn’t break previous functionality (regressions).
+
+- **Modularity & Reuse:** Design agents in a modular way so they can be used independently or replaced. For instance:
+  - The Support Agent and Recommendation Agent should be accessible as standalone components (e.g., via functions or HTTP endpoints), not hard-coded inside the orchestrator. This allows reusing them in other contexts (future chapters might integrate them into other workflows).
+  - Configurations (like model endpoints, index names, etc.) should be easy to adjust (via config files or environment variables), to illustrate how different environments or data sources could be plugged in. In the PoC, these can be dummy values but the structure (e.g., reading from a config file or environment) should be in place.
+
+- **Documentation:** Each chapter should include updates to documentation:
+  - The repository’s main README or chapter-specific READMEs should be updated to explain new features and how to run/test them. We want the final state of the repository to be understandable to human developers reviewing it.
+  - Include architecture diagrams or markdown tables if needed to explain agent interactions (for example, a simple diagram of the orchestrator and two agents could be described).
+  - Comment the code where non-obvious decisions are made, to aid future maintainers (and to act as self-documentation for the AI).
+
+By following this structured approach, the PoC will incrementally demonstrate how a team at a generic enterprise might build a multi-agent AI solution: starting from simple single-purpose agents and growing into a sophisticated, orchestrated AI assistant that can transform how the business interacts with its customers and data – **all while maintaining strong engineering practices and governance.**
