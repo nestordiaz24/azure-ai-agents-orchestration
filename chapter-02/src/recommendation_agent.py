@@ -188,7 +188,7 @@ class RecommendationAgent:
         self._thread: AgentThread | None = None
 
     def _get_client(self) -> AIProjectClient:
-        """Lazily initialise and return the AI Project client."""
+        """Lazily initialize and return the AI Project client."""
         if self._client is None:
             endpoint = self._settings.azure_ai_project_endpoint
             if not endpoint:
