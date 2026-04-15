@@ -12,10 +12,10 @@
 - **Python Dependencies:** Use `pip install agent-framework` to get the Microsoft Agent Framework SDK. For local runs, the project may use a `requirements.txt` or `poetry`/`pipenv` – ensure Agent Framework and any needed libraries are installed.
 
 ## Project Structure
-- `chapter1-basic-agent/` – Example initial agent (e.g., Q&A support agent). Likely uses Azure AI Foundry (declarative YAML configuration in `agent.yaml`).
-- `chapter2-second-agent/` – Second agent (e.g., recommendation agent), possibly code-driven with Agent Framework, including source code and Dockerfile.
-- `chapter3-orchestrator/` – Orchestrator agent that coordinates multiple agents.
-- `chapter4-advanced/` – Advanced patterns and integration (e.g., parallel execution, logging, etc.).
+- `chapter-01/` – Chapter 1: Azure AI Foundry infrastructure and your first Q&A agent. Uses `azure-ai-projects` SDK directly (`AIProjectClient`, `create_agent()`, `create_thread()`, manual polling). A good introduction to the Foundry Agents API.
+- `chapter-02/` – Chapter 2: Product recommendation agent using the **Microsoft Agent Framework** (`agent-framework` package). Introduces the `Agent` class, `@tool` decorator, `FoundryChatClient`, and `AgentSession` – replacing the manual polling loop from Chapter 1.
+- `chapter-03/` – Chapter 3: Orchestrator agent that coordinates multiple agents (planned).
+- `chapter-04/` – Chapter 4: Advanced patterns and integration (e.g., parallel execution, logging, etc.) (planned).
 - `.ai/` – AI agent guidance folder (this folder). Contains context, specs, and memory for AI to reference when generating code.
 - Other standard folders (e.g., `src/`, `data/`, `docs/`, `infra/`, `tests/`) as needed per chapter.
 

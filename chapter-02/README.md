@@ -1,17 +1,27 @@
-# Chapter 2 – Product Recommendation Agent (Code-First)
+# Chapter 2 – Product Recommendation Agent (Microsoft Agent Framework)
 
-This chapter introduces a **code-first agent** built with the
-[Microsoft Agent Framework SDK](https://learn.microsoft.com/azure/ai-services/agents/overview)
-(`azure-ai-projects`). The agent uses a **product catalog lookup tool** to answer
-user queries about AcmeCorp products and recommend complementary solutions.
+This chapter introduces the **Microsoft Agent Framework** (`agent-framework` Python package)
+as an evolution of the raw Azure AI Foundry Agents API used in Chapter 1.  The agent uses a
+**product catalog lookup tool** to answer user queries about AcmeCorp products and recommend
+complementary solutions.
+
+**What's new compared to Chapter 1:**
+
+| Aspect | Chapter 1 (raw Foundry API) | Chapter 2 (Agent Framework) |
+|--------|-----------------------------|-----------------------------|
+| **Package** | `azure-ai-projects` | `agent-framework` + `azure-ai-projects` |
+| **Agent class** | `client.agents.create_agent()` (server-side) | `Agent(client, instructions, tools)` (local) |
+| **Tool registration** | Raw JSON schema + manual dispatch dict | `@tool` decorator — schema inferred automatically |
+| **Run management** | Manual polling loop (`while run.status …`) | Framework-managed; just `await agent.run(msg)` |
+| **Conversation state** | `AgentThread` managed via SDK calls | `AgentSession` returned by `agent.create_session()` |
+| **Model connection** | `AIProjectClient` → `create_run()` | `FoundryChatClient` wraps `AIProjectClient` |
 
 By the end of this chapter you will have:
 
-- A Python agent that registers and calls a custom **function tool**
+- A Python agent that registers custom **function tools** using the `@tool` decorator
 - A **FastAPI** HTTP server exposing the agent over REST (`POST /recommend`, `POST /chat`)
 - An **interactive CLI** for local testing without Azure credentials
 - A **Dockerfile** and `docker-compose.yaml` for containerised deployment
-- A comparison of the declarative approach (Chapter 1) versus the code-first approach (Chapter 2)
 
 ---
 
@@ -240,43 +250,100 @@ this is the "simulated external integration" pattern described in `AGENTS.md`.
 
 ### 2. Recommendation Agent (`src/recommendation_agent.py`)
 
-The agent is created with the **Azure AI Agents SDK** pattern:
+Chapter 2 introduces the **Microsoft Agent Framework** to replace the manual
+polling pattern from Chapter 1.
+
+#### Step 1 – Register tools with `@tool`
+
+Instead of defining raw JSON schemas and a manual dispatch dictionary, each
+catalog function is decorated with `@tool`.  The framework infers the JSON
+schema from the type annotations automatically:
 
 ```python
-from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import FunctionTool, ToolSet
+from agent_framework import tool
+from typing import Annotated
 
-client = AIProjectClient(endpoint=..., credential=DefaultAzureCredential())
+@tool
+def search_products_tool(
+    query: Annotated[str, "Keywords describing the desired product or capability"],
+) -> str:
+    """Search the AcmeCorp product catalog for products matching the query."""
+    import json
+    results = search_products(query)
+    return json.dumps({"results": results})
 
-toolset = ToolSet()
-toolset.add(FunctionTool(functions={"search_products", "get_recommendations", ...}))
+@tool
+def get_recommendations_tool(
+    product_id: Annotated[str, "The exact product ID (e.g., ACME-MON-001)"],
+) -> str:
+    """Return products recommended as companions to the given product ID."""
+    ...
 
-agent = client.agents.create_agent(
+@tool
+def list_all_products_tool() -> str:
+    """Return all products in the AcmeCorp catalog."""
+    ...
+```
+
+#### Step 2 – Construct the agent locally
+
+`FoundryChatClient` connects to the Azure AI Foundry model deployment.  The
+`Agent` class wires together the client, instructions, and tools — no remote
+`create_agent()` call, no thread management:
+
+```python
+from agent_framework import Agent
+from agent_framework.foundry import FoundryChatClient
+from azure.identity import DefaultAzureCredential
+
+client = FoundryChatClient(
+    project_endpoint="https://your-project.services.ai.azure.com/...",
     model="gpt-4o",
-    name="product-recommendation-agent",
+    credential=DefaultAzureCredential(),
+)
+
+agent = Agent(
+    client=client,
     instructions=AGENT_INSTRUCTIONS,
-    toolset=toolset,
+    tools=[search_products_tool, get_recommendations_tool, list_all_products_tool],
+    name="product-recommendation-agent",
 )
 ```
 
-Multi-turn conversations use **threads**:
+#### Step 3 – Manage conversation with `AgentSession`
+
+`AgentSession` replaces the raw `AgentThread`.  The framework handles history,
+tool dispatch, and run lifecycle internally:
 
 ```python
-thread = client.agents.create_thread()
-client.agents.create_message(thread_id=thread.id, role="user", content=question)
-run = client.agents.create_run(thread_id=thread.id, agent_id=agent.id)
+from agent_framework import AgentSession
+
+session: AgentSession = agent.create_session()
+
+# Each turn – no polling loop required
+response = await agent.run("What monitoring products do you offer?", session=session)
+print(response.text)
 ```
 
-When the model decides to call a tool, the run enters
-`REQUIRES_ACTION` status.  The agent class polls for this, dispatches
-the tool call to the local Python function, and submits the output back:
+The complete `chat()` method in `RecommendationAgent` is now just:
 
 ```python
-while run.status == RunStatus.REQUIRES_ACTION:
-    outputs = self._execute_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
-    run = client.agents.submit_tool_outputs_to_run(
-        thread_id=thread.id, run_id=run.id, tool_outputs=outputs
-    )
+async def chat(self, message: str) -> str:
+    response = await agent.run(message, session=self._get_session())
+    return response.text or "[No response from agent]"
+```
+
+Compare this to the Chapter 1 approach which required explicit polling:
+
+```python
+# Chapter 1 pattern (replaced by Agent Framework in Chapter 2)
+while run.status in (RunStatus.QUEUED, RunStatus.IN_PROGRESS, RunStatus.REQUIRES_ACTION):
+    if run.status == RunStatus.REQUIRES_ACTION:
+        outputs = self._execute_tool_calls(...)
+        run = client.agents.submit_tool_outputs_to_run(...)
+    else:
+        time.sleep(0.5)
+        run = client.agents.get_run(...)
 ```
 
 ### 3. FastAPI Server (`src/api.py`)
@@ -293,16 +360,18 @@ while run.status == RunStatus.REQUIRES_ACTION:
 
 ## Chapter 1 vs Chapter 2 Comparison
 
-| Aspect | Chapter 1 – Declarative Agent | Chapter 2 – Code-First Agent |
-|--------|-------------------------------|-------------------------------|
-| **SDK / approach** | `agent.yaml` (declarative) | `azure-ai-projects` Python SDK |
-| **Tools** | Azure AI Search (built-in) | Custom Python function tool |
-| **Deployment** | `azd up` → Foundry managed | Docker container / Azure Container Apps |
-| **Control** | Low (config-only) | High (arbitrary Python logic) |
+| Aspect | Chapter 1 – Raw Foundry API | Chapter 2 – Agent Framework |
+|--------|-----------------------------|-----------------------------|
+| **Package** | `azure-ai-projects` | `agent-framework` + `azure-ai-projects` |
+| **Agent creation** | `client.agents.create_agent()` (server-side) | `Agent(client, instructions, tools)` (local) |
+| **Tool registration** | Raw JSON schema + manual dispatch dict | `@tool` decorator — schema auto-inferred |
+| **Run management** | Manual polling loop (`while run.status …`) | Framework-managed; `await agent.run(msg)` |
+| **Conversation state** | `AgentThread` via SDK calls | `AgentSession` from `agent.create_session()` |
+| **Model connection** | `AIProjectClient` directly | `FoundryChatClient` wrapping `AIProjectClient` |
+| **Tools** | `FunctionTool` + `ToolSet` | `@tool`-decorated Python functions |
 | **Local dev** | Requires Azure | Catalog tool works offline |
-| **Multi-turn** | Thread managed by Foundry | Thread managed in code |
-| **Observability** | Foundry portal logs | Container stdout / Azure Monitor |
-| **Best suited for** | Simple RAG Q&A | Complex workflows, custom data |
+| **Observability** | Foundry portal logs | Built-in OpenTelemetry via Agent Framework |
+| **Best suited for** | Simple RAG Q&A, learning Foundry | Custom tools, clean agent abstractions |
 
 ---
 
@@ -329,6 +398,8 @@ az containerapp create \
 
 ## References
 
+- 📘 [Microsoft Agent Framework overview](https://learn.microsoft.com/en-us/agent-framework/overview/)
+- 📘 [Microsoft Agent Framework – GitHub](https://github.com/microsoft/agent-framework)
 - 📘 [Azure AI Agents overview](https://learn.microsoft.com/azure/ai-services/agents/overview)
 - 📘 [Quickstart: Create an agent (Python)](https://learn.microsoft.com/azure/ai-services/agents/quickstart?pivots=programming-language-python-azure)
 - 📘 [azure-ai-projects SDK reference](https://learn.microsoft.com/python/api/azure-ai-projects)
