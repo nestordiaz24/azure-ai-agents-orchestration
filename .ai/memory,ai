@@ -8,9 +8,17 @@ _This file records key decisions, assumptions, and context information that the 
 - Key design: Agent configured via `agent.yaml` with an Azure Cognitive Search index and an OpenAI GPT-4 model deployment.
 
 ## [Chapter 2] Product Recommendation Agent Completed
-- Implemented a product recommendation agent using Python (Microsoft Agent Framework).
-- This agent loads a sample product catalog from `data/products.csv` and suggests related products based on a simple rule (shared category tags).
-- Exposed as a FastAPI endpoint (for easy calling by the orchestrator).
+- Implemented a product recommendation agent using Python (Microsoft Agent Framework SDK / azure-ai-projects).
+- This agent loads a synthetic product catalog from `data/products.json` (15 fictitious AcmeCorp products) and:
+  - Exposes `search_products(query)` and `get_recommendations(product_id)` as pure-Python tool functions.
+  - Registers those tools with the Azure AI Agents SDK (`FunctionTool` + `ToolSet`) on the agent.
+  - Manages multi-turn conversations via threads using `AIProjectClient`.
+- Exposed as a FastAPI service (`POST /recommend`, `POST /chat`, `GET /health`, `GET /catalog`, etc.).
+- Interactive CLI (`src/chat.py`) supports catalog mode (no Azure) and agent mode (Azure).
+- Dockerfile (Python 3.11-slim, non-root user) and docker-compose.yaml provided for containerised deployment.
+- Unit tests in `tests/test_product_catalog.py` cover all public catalog functions (no Azure needed).
+- Decision: the `/recommend` endpoint uses the pure-Python catalog tool directly for low latency; `/chat` delegates to the full agent for LLM-powered responses.
+- Decision: `DefaultAzureCredential` is the preferred auth mechanism; API key auth is also supported via `AZURE_OPENAI_API_KEY` env var.
 
 ## [Chapter 3] Orchestrator Agent Completed
 - Built an orchestrator agent using Agent Framework (Python).
