@@ -1,0 +1,137 @@
+[
+  {
+    "id": "ACME-MON-001",
+    "name": "AcmeCorp CloudMonitor Pro",
+    "description": "Real-time infrastructure monitoring platform with AI-powered anomaly detection, multi-cloud dashboards, and automated alerting for enterprise workloads.",
+    "category": "monitoring",
+    "tags": ["monitoring", "cloud", "ai", "alerting", "infrastructure"],
+    "price": 299.99,
+    "related_products": ["ACME-MON-002", "ACME-OBS-005", "ACME-DEV-010"]
+  },
+  {
+    "id": "ACME-MON-002",
+    "name": "AcmeCorp LogStream Analyzer",
+    "description": "Centralized log management and analysis tool with pattern recognition, compliance reporting, and real-time search across distributed systems.",
+    "category": "monitoring",
+    "tags": ["monitoring", "logs", "compliance", "search", "distributed"],
+    "price": 199.99,
+    "related_products": ["ACME-MON-001", "ACME-SEC-007", "ACME-OBS-005"]
+  },
+  {
+    "id": "ACME-DATA-003",
+    "name": "AcmeCorp DataSync Enterprise",
+    "description": "High-throughput data integration and synchronization platform supporting 200+ connectors, real-time CDC (Change Data Capture), and automated data pipelines.",
+    "category": "data-integration",
+    "tags": ["data-integration", "etl", "pipeline", "cdc", "connectors"],
+    "price": 499.99,
+    "related_products": ["ACME-DATA-004", "ACME-ANA-008", "ACME-SEC-007"]
+  },
+  {
+    "id": "ACME-DATA-004",
+    "name": "AcmeCorp StreamBridge",
+    "description": "Event-driven data streaming service built on Apache Kafka architecture. Enables real-time data flow between microservices, databases, and analytics platforms.",
+    "category": "data-integration",
+    "tags": ["data-integration", "streaming", "kafka", "events", "microservices"],
+    "price": 349.99,
+    "related_products": ["ACME-DATA-003", "ACME-ANA-008", "ACME-DEV-010"]
+  },
+  {
+    "id": "ACME-OBS-005",
+    "name": "AcmeCorp FullStack Observability Suite",
+    "description": "End-to-end observability platform combining metrics, traces, and logs with distributed tracing (OpenTelemetry), service maps, and SLA dashboards.",
+    "category": "monitoring",
+    "tags": ["monitoring", "observability", "tracing", "metrics", "opentelemetry"],
+    "price": 599.99,
+    "related_products": ["ACME-MON-001", "ACME-MON-002", "ACME-DEV-010"]
+  },
+  {
+    "id": "ACME-SEC-006",
+    "name": "AcmeCorp SecureVault IAM",
+    "description": "Identity and Access Management solution with zero-trust architecture, single sign-on (SSO), multi-factor authentication, and fine-grained RBAC policies.",
+    "category": "security",
+    "tags": ["security", "iam", "sso", "mfa", "rbac", "zero-trust"],
+    "price": 399.99,
+    "related_products": ["ACME-SEC-007", "ACME-DATA-003", "ACME-MON-001"]
+  },
+  {
+    "id": "ACME-SEC-007",
+    "name": "AcmeCorp ThreatShield SIEM",
+    "description": "Security Information and Event Management platform with real-time threat detection, AI-powered incident correlation, and automated response playbooks.",
+    "category": "security",
+    "tags": ["security", "siem", "threat-detection", "ai", "incident-response"],
+    "price": 749.99,
+    "related_products": ["ACME-SEC-006", "ACME-MON-002", "ACME-OBS-005"]
+  },
+  {
+    "id": "ACME-ANA-008",
+    "name": "AcmeCorp InsightEngine Analytics",
+    "description": "Advanced business intelligence and analytics platform with natural language querying, self-service dashboards, predictive analytics, and data storytelling features.",
+    "category": "analytics",
+    "tags": ["analytics", "bi", "dashboards", "predictive", "nlq", "reporting"],
+    "price": 449.99,
+    "related_products": ["ACME-ANA-009", "ACME-DATA-003", "ACME-DATA-004"]
+  },
+  {
+    "id": "ACME-ANA-009",
+    "name": "AcmeCorp DataLake Warehouse",
+    "description": "Cloud-native data lakehouse platform unifying data lake storage with data warehouse performance. Supports ACID transactions, time travel queries, and multi-format ingestion.",
+    "category": "analytics",
+    "tags": ["analytics", "data-lake", "warehouse", "cloud", "acid", "storage"],
+    "price": 649.99,
+    "related_products": ["ACME-ANA-008", "ACME-DATA-003", "ACME-DATA-004"]
+  },
+  {
+    "id": "ACME-DEV-010",
+    "name": "AcmeCorp DevFlow CI/CD Platform",
+    "description": "Continuous integration and delivery platform with AI-assisted code review, automated testing pipelines, deployment gates, and multi-environment promotion workflows.",
+    "category": "devops",
+    "tags": ["devops", "ci-cd", "automation", "deployment", "testing", "ai"],
+    "price": 249.99,
+    "related_products": ["ACME-DEV-011", "ACME-MON-001", "ACME-OBS-005"]
+  },
+  {
+    "id": "ACME-DEV-011",
+    "name": "AcmeCorp InfraForge IaC Suite",
+    "description": "Infrastructure-as-Code management platform supporting Terraform, Bicep, and Pulumi. Includes drift detection, cost estimation, policy enforcement, and version-controlled deployments.",
+    "category": "devops",
+    "tags": ["devops", "iac", "terraform", "infrastructure", "cost", "policy"],
+    "price": 299.99,
+    "related_products": ["ACME-DEV-010", "ACME-SEC-006", "ACME-MON-001"]
+  },
+  {
+    "id": "ACME-AI-012",
+    "name": "AcmeCorp AI Ops Intelligence",
+    "description": "AIOps platform that leverages machine learning to predict infrastructure failures, auto-remediate incidents, and optimize resource utilization across hybrid environments.",
+    "category": "monitoring",
+    "tags": ["monitoring", "ai", "aiops", "ml", "auto-remediation", "infrastructure"],
+    "price": 699.99,
+    "related_products": ["ACME-MON-001", "ACME-OBS-005", "ACME-DEV-010"]
+  },
+  {
+    "id": "ACME-SEC-013",
+    "name": "AcmeCorp ComplianceGuard",
+    "description": "Automated compliance management platform covering SOC 2, ISO 27001, GDPR, HIPAA, and PCI-DSS. Provides continuous evidence collection, audit trails, and remediation guidance.",
+    "category": "security",
+    "tags": ["security", "compliance", "gdpr", "hipaa", "soc2", "audit"],
+    "price": 549.99,
+    "related_products": ["ACME-SEC-006", "ACME-SEC-007", "ACME-MON-002"]
+  },
+  {
+    "id": "ACME-DATA-014",
+    "name": "AcmeCorp DataQuality Guardian",
+    "description": "Data quality monitoring and governance platform with automated profiling, anomaly detection on data pipelines, lineage tracking, and business glossary management.",
+    "category": "data-integration",
+    "tags": ["data-integration", "data-quality", "governance", "lineage", "profiling"],
+    "price": 379.99,
+    "related_products": ["ACME-DATA-003", "ACME-ANA-008", "ACME-ANA-009"]
+  },
+  {
+    "id": "ACME-DEV-015",
+    "name": "AcmeCorp ContainerOrchestrator",
+    "description": "Enterprise-grade Kubernetes management platform with multi-cluster federation, auto-scaling policies, cost optimization, and built-in service mesh integration.",
+    "category": "devops",
+    "tags": ["devops", "kubernetes", "containers", "auto-scaling", "service-mesh"],
+    "price": 399.99,
+    "related_products": ["ACME-DEV-010", "ACME-DEV-011", "ACME-MON-001"]
+  }
+]

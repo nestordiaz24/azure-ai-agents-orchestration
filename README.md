@@ -7,6 +7,7 @@ This repository provides a step-by-step guide to operationalize AI agents using 
 | Chapter | Title | Description |
 |---------|-------|-------------|
 | [Chapter 1](./chapter-01/README.md) | Deploy Basic Foundry Agent | Deploy a simple Q&A agent to Azure AI Foundry using `agent.yaml` and the Azure Developer CLI (`azd`). Provisions an AI Hub, AI Project, Azure OpenAI model, and Azure AI Search index via Bicep IaC. |
+| [Chapter 2](./chapter-02/README.md) | Product Recommendation Agent (Code-First) | Implement a second agent using the Microsoft Agent Framework SDK (`azure-ai-projects`). The agent uses a custom function tool (product catalog lookup) for recommendations, exposed via a FastAPI HTTP server and Dockerfile for containerised deployment. |
 
 ## Getting Started
 
