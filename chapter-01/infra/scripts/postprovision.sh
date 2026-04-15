@@ -1,5 +1,5 @@
 #!/bin/sh
-# Post-provision hook: deploy agent.yaml to the Azure AI Project
+# Post-provision hook: install Python dependencies after provisioning
 set -e
 
 resolve_python() {
@@ -16,36 +16,20 @@ resolve_python() {
   return 1
 }
 
-echo "Deploying agent configuration..."
-
-if [ -z "$AZURE_OPENAI_ENDPOINT" ]; then
-  # Fallback: construct from AI Services endpoint if Bicep hasn't output it yet
-  if [ -n "$AZURE_AI_SERVICES_ENDPOINT" ]; then
-    AZURE_OPENAI_ENDPOINT="$(echo "$AZURE_AI_SERVICES_ENDPOINT" | sed 's/\.cognitiveservices\.azure\.com/.openai.azure.com/')"
-    export AZURE_OPENAI_ENDPOINT
-  else
-    echo "WARNING: AZURE_OPENAI_ENDPOINT is not set. Skipping agent deployment."
-    exit 0
-  fi
-fi
-
 # azd hooks run with the working directory set to the project root (where azure.yaml lives)
 PROJECT_DIR="${AZD_PROJECT_DIR:-$(pwd)}"
 REQUIREMENTS_FILE="$PROJECT_DIR/requirements.txt"
-DEPLOY_SCRIPT="$PROJECT_DIR/src/deploy_agent.py"
 
-if [ ! -f "$REQUIREMENTS_FILE" ] || [ ! -f "$DEPLOY_SCRIPT" ]; then
-  echo "WARNING: Project files for agent deployment were not found. Skipping agent deployment."
+if [ ! -f "$REQUIREMENTS_FILE" ]; then
+  echo "WARNING: requirements.txt not found. Skipping dependency installation."
   exit 0
 fi
 
 PYTHON_CMD="$(resolve_python)" || {
-  echo "ERROR: Python 3.10+ is required for the post-provision deployment step."
-  exit 1
+  echo "WARNING: Python 3.10+ not found. Skipping dependency installation."
+  exit 0
 }
 
-echo "Installing Python dependencies for agent deployment..."
+echo "Installing Python dependencies..."
 "$PYTHON_CMD" -m pip install -q -r "$REQUIREMENTS_FILE"
-
-echo "Creating/updating agent (endpoint: $AZURE_OPENAI_ENDPOINT)..."
-"$PYTHON_CMD" "$DEPLOY_SCRIPT"
+echo "Done. Run 'python src/chat.py' to start chatting with your agent."

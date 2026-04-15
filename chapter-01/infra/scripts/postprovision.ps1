@@ -1,4 +1,4 @@
-# Post-provision hook: deploy agent.yaml to the Azure AI Project
+# Post-provision hook: install Python dependencies after provisioning
 $ErrorActionPreference = "Stop"
 
 function Get-PythonCommand {
@@ -16,7 +16,7 @@ function Get-PythonCommand {
         }
     }
 
-    throw "Python 3.10+ is required for the post-provision deployment step."
+    return $null
 }
 
 function Invoke-PythonCommand {
@@ -33,33 +33,21 @@ function Invoke-PythonCommand {
     & $PythonCommand[0] @Arguments
 }
 
-Write-Host "Deploying agent configuration..."
-
-if (-not $env:AZURE_OPENAI_ENDPOINT) {
-    # Fallback: construct from AI Services name if Bicep hasn't output it yet
-    if ($env:AZURE_AI_SERVICES_ENDPOINT) {
-        $uri = [System.Uri]$env:AZURE_AI_SERVICES_ENDPOINT
-        $env:AZURE_OPENAI_ENDPOINT = "https://$($uri.Host.Replace('.cognitiveservices.azure.com', '.openai.azure.com'))/"
-    } else {
-        Write-Warning "AZURE_OPENAI_ENDPOINT is not set. Skipping agent deployment."
-        exit 0
-    }
-}
-
 # azd hooks run with the working directory set to the project root (where azure.yaml lives)
 $ProjectDir = if ($env:AZD_PROJECT_DIR) { $env:AZD_PROJECT_DIR } else { (Get-Location).Path }
 $RequirementsFile = Join-Path $ProjectDir "requirements.txt"
-$DeployScript = Join-Path $ProjectDir "src\deploy_agent.py"
 
-if (-not (Test-Path $RequirementsFile) -or -not (Test-Path $DeployScript)) {
-    Write-Warning "Project files for agent deployment were not found. Skipping agent deployment."
+if (-not (Test-Path $RequirementsFile)) {
+    Write-Warning "requirements.txt not found. Skipping dependency installation."
     exit 0
 }
 
 $pythonCommand = Get-PythonCommand
+if (-not $pythonCommand) {
+    Write-Warning "Python 3.10+ not found. Skipping dependency installation."
+    exit 0
+}
 
-Write-Host "Installing Python dependencies for agent deployment..."
+Write-Host "Installing Python dependencies..."
 Invoke-PythonCommand -PythonCommand $pythonCommand -Arguments @('-m', 'pip', 'install', '-q', '-r', $RequirementsFile)
-
-Write-Host "Creating/updating agent (endpoint: $env:AZURE_OPENAI_ENDPOINT)..."
-Invoke-PythonCommand -PythonCommand $pythonCommand -Arguments @($DeployScript)
+Write-Host "Done. Run 'python src/chat.py' to start chatting with your agent."
