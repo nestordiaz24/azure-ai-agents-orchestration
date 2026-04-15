@@ -267,9 +267,12 @@ class RecommendationAgent:
             else:
                 try:
                     result = fn(**kwargs)
-                except Exception as exc:  # noqa: BLE001
+                except (TypeError, KeyError, ValueError, FileNotFoundError) as exc:
                     logger.exception("Tool '%s' raised an error", fn_name)
                     result = json.dumps({"error": str(exc)})
+                except Exception as exc:  # noqa: BLE001 – tool is user-defined; any error must be captured
+                    logger.exception("Tool '%s' raised an unexpected error", fn_name)
+                    result = json.dumps({"error": f"Unexpected error in tool: {exc}"})
 
             outputs.append(ToolOutput(tool_call_id=call.id, output=result))
         return outputs

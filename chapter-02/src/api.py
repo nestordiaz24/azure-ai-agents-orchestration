@@ -160,8 +160,11 @@ async def recommend(request: RecommendRequest) -> RecommendResponse:
             results=summaries,
             total=len(summaries),
         )
-    except Exception as exc:
-        logger.exception("Error in /recommend")
+    except FileNotFoundError as exc:
+        logger.error("Product catalog file not found: %s", exc)
+        raise HTTPException(status_code=503, detail="Product catalog unavailable.") from exc
+    except ValueError as exc:
+        logger.error("Invalid catalog format: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -185,9 +188,6 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    except Exception as exc:
-        logger.exception("Unexpected error in /chat")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/catalog", response_model=list[ProductSummary], tags=["catalog"])
@@ -196,8 +196,11 @@ async def get_catalog() -> list[ProductSummary]:
     try:
         products = list_all_products()
         return [_to_product_summary(p) for p in products]
-    except Exception as exc:
-        logger.exception("Error in /catalog")
+    except FileNotFoundError as exc:
+        logger.error("Product catalog file not found: %s", exc)
+        raise HTTPException(status_code=503, detail="Product catalog unavailable.") from exc
+    except ValueError as exc:
+        logger.error("Invalid catalog format: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -218,6 +221,9 @@ async def product_recommendations(product_id: str) -> list[ProductSummary]:
             # Return empty list rather than 404 – the product may exist but have no related items
             return []
         return [_to_product_summary(p) for p in products]
-    except Exception as exc:
-        logger.exception("Error in /catalog/{product_id}/recommendations")
+    except FileNotFoundError as exc:
+        logger.error("Product catalog file not found: %s", exc)
+        raise HTTPException(status_code=503, detail="Product catalog unavailable.") from exc
+    except ValueError as exc:
+        logger.error("Invalid catalog format: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

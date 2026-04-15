@@ -120,8 +120,11 @@ def main() -> None:
     if args.mode == "agent":
         try:
             reply_fn = _build_agent_reply()
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, ImportError) as exc:
             print(f"ERROR: Could not initialize agent: {exc}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as exc:  # noqa: BLE001 – Azure SDK errors vary widely
+            print(f"ERROR: Unexpected error during agent initialization: {exc}", file=sys.stderr)
             sys.exit(1)
     else:
         reply_fn = _catalog_reply
@@ -141,8 +144,10 @@ def main() -> None:
 
         try:
             reply = reply_fn(user_input)
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, RuntimeError) as exc:
             reply = f"[Error: {exc}]"
+        except Exception as exc:  # noqa: BLE001 – defensive catch for unforeseen SDK errors
+            reply = f"[Unexpected error: {exc}]"
 
         print(f"\nAgent: {reply}\n")
 
