@@ -25,6 +25,7 @@ Environment variables required for Azure integration (see .env.example):
     AZURE_OPENAI_DEPLOYMENT   – Model deployment name (default: gpt-4o)
 """
 
+import json
 import logging
 from typing import Annotated
 
@@ -71,8 +72,6 @@ def search_products_tool(
     Returns a JSON string with a list of matching products (id, name,
     description, category, tags, price).
     """
-    import json
-
     results = search_products(query)
     if not results:
         return json.dumps({"results": [], "message": "No products matched the query."})
@@ -87,8 +86,6 @@ def get_recommendations_tool(
 
     Returns a JSON string with a list of recommended products.
     """
-    import json
-
     results = get_recommendations(product_id)
     if not results:
         return json.dumps(
@@ -106,8 +103,6 @@ def list_all_products_tool() -> str:
 
     Returns a JSON string with the full product list.
     """
-    import json
-
     results = list_all_products()
     return json.dumps({"results": results})
 
