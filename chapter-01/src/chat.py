@@ -1,124 +1,117 @@
 """
-chat.py – Interactive CLI to chat with the deployed Foundry agent.
+chat.py – Interactive CLI to chat with a simple Foundry Q&A agent.
+
+Creates the agent inline on first run (no separate deploy step required).
+The agent is cleaned up automatically when the session ends.
 
 Usage:
-    python src/chat.py [--agent-name foundry-qa-agent]
+    python src/chat.py
 
 Required environment variables (set automatically by `azd up`, or via a
 .env file during local development):
-    AZURE_OPENAI_ENDPOINT  – Azure OpenAI endpoint
-    AGENT_NAME             – (optional) override agent name; defaults to 'foundry-qa-agent'
+    AZURE_AI_PROJECT_ENDPOINT – Azure AI Foundry project endpoint
+    AZURE_OPENAI_DEPLOYMENT   – Model deployment name (default: gpt-4o)
+    AGENT_NAME                – (optional) agent name (default: foundry-qa-agent)
 
 Type your question and press Enter. Type 'quit' or 'exit' to stop.
 """
 
-import argparse
-import os
 import sys
 import time
-from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from openai import AzureOpenAI
 
-load_dotenv()
+from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import MessageRole, RunStatus
+from azure.identity import DefaultAzureCredential
 
-DEFAULT_AGENT_NAME = "foundry-qa-agent"
-POLL_INTERVAL_SECONDS = 1
-API_VERSION = "2024-12-01-preview"
+from src.config import get_settings
 
+POLL_INTERVAL_SECONDS = 0.5
 
-def find_agent(client: AzureOpenAI, name: str):
-    """Return the first assistant whose name matches, or None."""
-    for agent in client.beta.assistants.list():
-        if agent.name == name:
-            return agent
-    return None
+AGENT_INSTRUCTIONS = """
+You are a helpful Q&A assistant powered by Azure AI Foundry.
+Answer questions accurately and concisely.
+If a question is ambiguous, ask for clarification.
+Keep answers focused and professional.
+""".strip()
 
 
-def ask(client: AzureOpenAI, agent_id: str, thread_id: str, question: str) -> str:
-    """Send a message to the agent and return the assistant reply text."""
-    client.beta.threads.messages.create(
+def ask(client: AIProjectClient, agent_id: str, thread_id: str, question: str) -> str:
+    """Send *question* to the agent thread and return the assistant reply."""
+    client.agents.create_message(
         thread_id=thread_id,
-        role="user",
+        role=MessageRole.USER,
         content=question,
     )
 
-    run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=agent_id)
+    run = client.agents.create_run(thread_id=thread_id, agent_id=agent_id)
 
-    while run.status in ("queued", "in_progress"):
+    while run.status in (RunStatus.QUEUED, RunStatus.IN_PROGRESS):
         time.sleep(POLL_INTERVAL_SECONDS)
-        run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+        run = client.agents.get_run(thread_id=thread_id, run_id=run.id)
 
-    if run.status != "completed":
-        return f"[Run ended with status: {run.status}. Last error: {run.last_error}]"
+    if run.status != RunStatus.COMPLETED:
+        return f"[Run ended with status: {run.status}. Last error: {getattr(run, 'last_error', 'unknown')}]"
 
-    messages = client.beta.threads.messages.list(thread_id=thread_id)
+    messages = client.agents.list_messages(thread_id=thread_id)
     for msg in messages:
-        if msg.role == "assistant":
+        if msg.role == MessageRole.AGENT:
             for block in msg.content:
-                if block.type == "text":
+                if hasattr(block, "text"):
                     return block.text.value
     return "[No response received from agent]"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Chat with a Foundry agent.")
-    parser.add_argument(
-        "--agent-name",
-        default=os.environ.get("AGENT_NAME", DEFAULT_AGENT_NAME),
-        help=f"Name of the deployed agent (default: {DEFAULT_AGENT_NAME})",
-    )
-    args = parser.parse_args()
+    settings = get_settings()
 
-    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
-    if not endpoint:
+    if not settings.azure_ai_project_endpoint:
         print(
-            "ERROR: AZURE_OPENAI_ENDPOINT is not set.\n"
+            "ERROR: AZURE_AI_PROJECT_ENDPOINT is not set.\n"
             "Run `azd env get-values` and set the variable, or add it to a .env file.",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    credential = DefaultAzureCredential()
-    token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
-
-    client = AzureOpenAI(
-        azure_endpoint=endpoint,
-        azure_ad_token_provider=token_provider,
-        api_version=API_VERSION,
+    client = AIProjectClient(
+        endpoint=settings.azure_ai_project_endpoint,
+        credential=DefaultAzureCredential(),
     )
 
-    agent = find_agent(client, args.agent_name)
-    if not agent:
-        print(
-            f"ERROR: Agent '{args.agent_name}' not found in the project.\n"
-            "Run `python src/deploy_agent.py` first to create it.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    print(f"Creating agent '{settings.agent_name}' …")
+    agent = client.agents.create_agent(
+        model=settings.azure_openai_deployment,
+        name=settings.agent_name,
+        instructions=AGENT_INSTRUCTIONS,
+    )
+    print(f"Agent created: {agent.id}")
 
-    thread = client.beta.threads.create()
+    thread = client.agents.create_thread()
 
     print(f"\n🤖  Chatting with agent '{agent.name}' (id={agent.id})")
     print("    Type 'quit' or 'exit' to end the session.\n")
 
-    while True:
-        try:
-            user_input = input("You: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nSession ended.")
-            break
+    try:
+        while True:
+            try:
+                user_input = input("You: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\nSession ended.")
+                break
 
-        if not user_input:
-            continue
-        if user_input.lower() in ("quit", "exit"):
-            print("Session ended.")
-            break
+            if not user_input:
+                continue
+            if user_input.lower() in ("quit", "exit"):
+                print("Session ended.")
+                break
 
-        print("Agent: ", end="", flush=True)
-        reply = ask(client, agent.id, thread.id, user_input)
-        print(reply)
-        print()
+            print("Agent: ", end="", flush=True)
+            reply = ask(client, agent.id, thread.id, user_input)
+            print(reply)
+            print()
+    finally:
+        print(f"\nCleaning up agent '{agent.id}' …")
+        client.agents.delete_agent(agent.id)
+        print("Done.")
 
 
 if __name__ == "__main__":
