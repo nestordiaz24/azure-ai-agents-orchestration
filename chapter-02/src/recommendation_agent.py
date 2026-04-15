@@ -24,6 +24,7 @@ Environment variables required for Azure integration (see .env.example):
 
 import json
 import logging
+import time
 from typing import Any
 
 from azure.ai.projects import AIProjectClient
@@ -319,8 +320,6 @@ class RecommendationAgent:
                     tool_outputs=outputs,
                 )
             else:
-                import time
-
                 time.sleep(0.5)
                 run = client.agents.get_run(thread_id=thread.id, run_id=run.id)
 

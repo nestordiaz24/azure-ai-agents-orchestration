@@ -69,7 +69,11 @@ SAMPLE_PRODUCTS = [
 
 @pytest.fixture()
 def catalog_file(tmp_path: pathlib.Path) -> pathlib.Path:
-    """Write SAMPLE_PRODUCTS to a temp JSON file and return its path."""
+    """Write SAMPLE_PRODUCTS to a temp JSON file and return its path.
+
+    ``tmp_path`` is a built-in pytest fixture that provides a temporary
+    directory unique to each test invocation.
+    """
     path = tmp_path / "products.json"
     path.write_text(json.dumps(SAMPLE_PRODUCTS), encoding="utf-8")
     return path
