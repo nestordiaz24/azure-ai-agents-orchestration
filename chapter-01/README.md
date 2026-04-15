@@ -256,7 +256,7 @@ In **Chapter 2**, you'll extend this exact pattern by:
 - Wrapping the agent in a **FastAPI web server** for HTTP access
 - Packaging it in a **Docker container** for deployment
 
-The `AIProjectClient`, `create_agent()`, `create_thread()`, and polling patterns you learned here carry forward unchanged into Chapter 2.
+The `AIProjectClient`, `create_agent()`, `create_thread()`, and polling patterns you learned here are the foundation for Chapter 2.  Chapter 2 introduces the **Microsoft Agent Framework** (`agent-framework` package) as an evolution: it replaces the manual polling loop with the `Agent` class and `@tool` decorator, while continuing to use Azure AI Foundry for model hosting.
 
 ---
 

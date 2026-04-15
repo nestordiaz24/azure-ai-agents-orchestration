@@ -15,6 +15,7 @@ Type 'reset' to clear conversation history (agent mode only).
 """
 
 import argparse
+import asyncio
 import sys
 from typing import Callable
 
@@ -68,16 +69,16 @@ def _catalog_reply(query: str) -> str:
 
 
 def _build_agent_reply() -> Callable[[str], str]:
-    """Create a stateful reply function backed by the recommendation agent."""
+    """Create a stateful async reply function backed by the recommendation agent."""
     from src.recommendation_agent import RecommendationAgent  # noqa: PLC0415
 
     agent = RecommendationAgent()
 
-    def _reply(message: str) -> str:
+    async def _reply(message: str) -> str:
         if message.lower() == "reset":
             agent.reset()
             return "[Conversation reset. Starting a new session.]"
-        return agent.chat(message)
+        return await agent.chat(message)
 
     return _reply
 
@@ -99,6 +100,46 @@ def _print_banner(mode: str) -> None:
     print()
 
 
+async def _main_async(mode: str) -> None:
+    """Async main loop for the interactive CLI."""
+    if mode == "agent":
+        try:
+            reply_fn = _build_agent_reply()
+        except (ValueError, ImportError) as exc:
+            print(f"ERROR: Could not initialize agent: {exc}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as exc:  # noqa: BLE001 – Azure SDK errors vary widely
+            print(f"ERROR: Unexpected error during agent initialization: {exc}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        reply_fn = None  # catalog mode uses sync _catalog_reply directly
+
+    while True:
+        try:
+            user_input = input("You: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nSession ended.")
+            break
+
+        if not user_input:
+            continue
+        if user_input.lower() in ("quit", "exit"):
+            print("Session ended.")
+            break
+
+        try:
+            if mode == "agent" and reply_fn is not None:
+                reply = await reply_fn(user_input)
+            else:
+                reply = _catalog_reply(user_input)
+        except (ValueError, RuntimeError) as exc:
+            reply = f"[Error: {exc}]"
+        except Exception as exc:  # noqa: BLE001 – defensive catch for unforeseen SDK errors
+            reply = f"[Unexpected error: {exc}]"
+
+        print(f"\nAgent: {reply}\n")
+
+
 def main() -> None:
     """Entry point for the interactive CLI."""
     parser = argparse.ArgumentParser(
@@ -116,40 +157,7 @@ def main() -> None:
     args = parser.parse_args()
 
     _print_banner(args.mode)
-
-    if args.mode == "agent":
-        try:
-            reply_fn = _build_agent_reply()
-        except (ValueError, ImportError) as exc:
-            print(f"ERROR: Could not initialize agent: {exc}", file=sys.stderr)
-            sys.exit(1)
-        except Exception as exc:  # noqa: BLE001 – Azure SDK errors vary widely
-            print(f"ERROR: Unexpected error during agent initialization: {exc}", file=sys.stderr)
-            sys.exit(1)
-    else:
-        reply_fn = _catalog_reply
-
-    while True:
-        try:
-            user_input = input("You: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nSession ended.")
-            break
-
-        if not user_input:
-            continue
-        if user_input.lower() in ("quit", "exit"):
-            print("Session ended.")
-            break
-
-        try:
-            reply = reply_fn(user_input)
-        except (ValueError, RuntimeError) as exc:
-            reply = f"[Error: {exc}]"
-        except Exception as exc:  # noqa: BLE001 – defensive catch for unforeseen SDK errors
-            reply = f"[Unexpected error: {exc}]"
-
-        print(f"\nAgent: {reply}\n")
+    asyncio.run(_main_async(args.mode))
 
 
 if __name__ == "__main__":

@@ -181,7 +181,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
     """
     try:
         session_id, agent = _get_or_create_session(request.session_id)
-        reply = agent.chat(request.message)
+        reply = await agent.chat(request.message)
         return ChatResponse(session_id=session_id, reply=reply)
     except ValueError as exc:
         # Missing environment variables
